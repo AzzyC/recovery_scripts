@@ -9,6 +9,8 @@ my_print() {
 my_print " "
 
 my_print "--- Data ---"
+my_print "Mounting /data ..."
+mountpoint -q /data || mount /data
 my_print "Wiping /data without /data/media ..."
 my_print "Making /data/media immutable ..."
 
@@ -30,9 +32,15 @@ after_data="$(du -ms /data | cut -f1)"
 my_print " "
 
 my_print "--- Metadata ---"
+my_print "Mounting /metadata ..."
+mountpoint -q /metadata || mount /metadata
 my_print "Wiping /metadata ..."
 
-dd if=/dev/zero of=/dev/block/bootdevice/by-name/metadata
+before_meta="$(du -ms /metadata | cut -f1)"
+
+rm -rf /metadata/*
+
+after_meta="$(du -ms /metadata | cut -f1)"
 
 my_print "Done"
 
@@ -40,6 +48,9 @@ my_print " "
 
 my_print "/data before: ${before_data}mb"
 my_print "/data after:  ${after_data}mb"
+my_print "/metadata before:  ${before_meta}mb"
+my_print "/metadata after:   ${after_meta}mb"
+
 
 my_print " "
 
