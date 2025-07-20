@@ -1,0 +1,50 @@
+#!/sbin/sh
+
+export ZIPARG2="$2"
+
+my_print() {
+	printf '%s\n' "ui_print $1" >>"/proc/self/fd/$ZIPARG2"
+}
+
+my_print " "
+
+my_print "--- Data ---"
+my_print "Wiping /data without /data/media ..."
+my_print "Making /data/media immutable ..."
+
+chattr -R +i /data/media
+
+before_data="$(du -ms /data | cut -f1)"
+
+my_print "Wildcard removing every file in /data ..."
+
+rm -rf /data/*
+
+my_print "Done"
+my_print "Revoking immunity from /data/media ..."
+
+chattr -R -i /data/media
+
+after_data="$(du -ms /data | cut -f1)"
+
+my_print " "
+
+my_print "--- Metadata ---"
+my_print "Wiping /metadata ..."
+
+dd if=/dev/zero of=/dev/block/bootdevice/by-name/metadata
+
+my_print "Done"
+
+my_print " "
+
+my_print "/data before: ${before_data}mb"
+my_print "/data after:  ${after_data}mb"
+
+my_print " "
+
+my_print "Ready to boot new ROM!"
+
+my_print " "
+
+exit 0
