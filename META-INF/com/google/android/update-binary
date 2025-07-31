@@ -8,53 +8,49 @@ my_print() {
 
 my_print " "
 
-my_print "--- Data ---"
-my_print "Mounting /data ..."
+my_print "Mounting /data /metadata and /cache..."
 mountpoint -q /data || mount /data
-my_print "Wiping /data without /data/media ..."
-my_print "Making /data/media immutable ..."
+mountpoint -q /metadata || mount /metadata
+mountpoint -q /cache || mount /cache
 
+before_data="$(du -s /data | cut -f1)"
+before_meta="$(du -s /metadata | cut -f1)"
+before_cache="$(du -s /cache | cut -f1)"
+
+my_print "--- Data ---"
+my_print "Wiping /data without /data/media..."
 chattr -R +i /data/media
-
-before_data="$(du -ms /data | cut -f1)"
-
-my_print "Wildcard removing every file in /data ..."
-
 rm -rf /data/*
-
 my_print "Done"
-my_print "Revoking immunity from /data/media ..."
-
 chattr -R -i /data/media
-
-after_data="$(du -ms /data | cut -f1)"
 
 my_print " "
 
 my_print "--- Metadata ---"
-my_print "Mounting /metadata ..."
-mountpoint -q /metadata || mount /metadata
-my_print "Wiping /metadata ..."
-
-before_meta="$(du -s /metadata | cut -f1)"
-
+my_print "Wiping /metadata..."
 rm -rf /metadata/*
-
-after_meta="$(du -s /metadata | cut -f1)"
-
 my_print "Done"
 
 my_print " "
 
-my_print "/data before: ${before_data}mb"
-my_print "/data after:  ${after_data}mb"
-my_print "/metadata before:  ${before_meta}b"
-my_print "/metadata after:   ${after_meta}b"
-
+my_print "--- Cache ---"
+my_print "Wiping /cache..."
+rm -rf /cache/*
+my_print "Done"
 
 my_print " "
 
-my_print "Ready to boot new ROM!"
+after_data="$(du -s /data | cut -f1)"
+after_meta="$(du -s /metadata | cut -f1)"
+after_cache="$(du -s /cache | cut -f1)"
+
+my_print "/data: ${before_data}b -> ${after_data}b"
+my_print "/metadata: ${before_meta}b -> ${after_meta}b"
+my_print "/cache: ${before_cache}b -> ${after_cache}b"
+
+my_print " "
+
+my_print "Ready to flash new ROM!"
 
 my_print " "
 
