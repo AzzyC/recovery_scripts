@@ -17,26 +17,22 @@ before_data="$(du -s /data | cut -f1)"
 before_meta="$(du -s /metadata | cut -f1)"
 before_cache="$(du -s /cache | cut -f1)"
 
-my_print "--- Data ---"
+my_print " "
+
 my_print "Wiping /data without /data/media..."
 chattr -R +i /data/media
 rm -rf /data/*
-my_print "Done"
 chattr -R -i /data/media
 
 my_print " "
 
-my_print "--- Metadata ---"
 my_print "Wiping /metadata..."
 rm -rf /metadata/*
-my_print "Done"
 
 my_print " "
 
-my_print "--- Cache ---"
 my_print "Wiping /cache..."
 rm -rf /cache/*
-my_print "Done"
 
 my_print " "
 
