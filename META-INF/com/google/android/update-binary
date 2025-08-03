@@ -19,7 +19,7 @@ find /data -mindepth 1 -maxdepth 1 ! -path /data/media -exec rm -rf {} +
 my_print "Done."
 
 my_print "Formatting /metadata using mke2fs..."
-mkfs.ext4 /dev/block/bootdevice/by-name/metadata
+mke2fs -t ext4 -O ^has_journal -m 0 /dev/block/bootdevice/by-name/metadata
 my_print "Done."
 
 after_data="$(du -s /data | cut -f1)"
