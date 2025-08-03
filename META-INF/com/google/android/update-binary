@@ -3,12 +3,9 @@
 export ZIPARG2="$2"
 
 my_print() {
-	printf '%s\n' "ui_print $1" >>"/proc/self/fd/$ZIPARG2"
+	printf '%s\n' "ui_print $1" >> "/proc/self/fd/$ZIPARG2"
 }
 
-my_print " "
-
-my_print "Mounting /data and /metadata..."
 mountpoint -q /data || mount /data
 mountpoint -q /metadata || mount /metadata
 
@@ -19,16 +16,16 @@ my_print " "
 
 my_print "Wiping /data without /data/media..."
 find /data -mindepth 1 -maxdepth 1 ! -path /data/media -exec rm -rf {} +
+my_print "Done."
 
-my_print " "
-
-my_print "Wiping /metadata..."
-rm -rf /metadata/*
-
-my_print " "
+my_print "Formatting /metadata using mke2fs..."
+mkfs.ext4 /dev/block/bootdevice/by-name/metadata
+my_print "Done."
 
 after_data="$(du -s /data | cut -f1)"
 after_meta="$(du -s /metadata | cut -f1)"
+
+my_print " "
 
 my_print "/data: ${before_data}b -> ${after_data}b"
 my_print "/metadata: ${before_meta}b -> ${after_meta}b"
