@@ -9,7 +9,7 @@ my_print() {
 mountpoint -q /data || mount /data
 mountpoint -q /metadata || mount /metadata
 
-before_data="$(du -s /data | cut -f1)"
+before_data="$(du -ms /data | cut -f1)"
 before_meta="$(du -s /metadata | cut -f1)"
 
 my_print " "
@@ -24,12 +24,12 @@ mke2fs -t ext4 -O ^has_journal -m 0 /dev/block/bootdevice/by-name/metadata
 mountpoint -q /metadata || mount /metadata
 my_print "Done."
 
-after_data="$(du -s /data | cut -f1)"
+after_data="$(du -ms /data | cut -f1)"
 after_meta="$(du -s /metadata | cut -f1)"
 
 my_print " "
 
-my_print "/data: ${before_data}b -> ${after_data}b"
+my_print "/data: ${before_data}mb -> ${after_data}mb"
 my_print "/metadata: ${before_meta}b -> ${after_meta}b"
 
 my_print " "
