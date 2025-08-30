@@ -1,0 +1,86 @@
+#!/sbin/sh
+
+export ZIPARG2="$2"
+
+my_print() {
+	printf '%s\n' "ui_print $1" >> "/proc/self/fd/$ZIPARG2"
+}
+
+getVolumeKey() {
+    my_print "- Volume Up to $1"
+    my_print "- Volume Down to $2"
+    keyInfo=true
+    while "$keyInfo"; do
+        keyInfo="$(getevent -qlc 1 | grep KEY_VOLUME)"
+        if [ "$keyInfo" = "" ]; then
+            continue
+        else
+            isUpKey=$(echo "$keyInfo" | grep KEY_VOLUMEUP)
+            [ "$isUpKey" != "" ] && return 0 || return 1
+        fi
+    done
+}
+
+extract() {
+	active_slot="$(getprop ro.boot.slot_suffix)"
+	extract_date=$(date +'%d%m%Y_%H%M%S')
+
+	my_print "Extracting current slot init_boot..."
+	my_print "Current slot: ${active_slot}"
+
+	dd if=/dev/block/bootdevice/by-name/init_boot"${active_slot}" of=/sdcard/Download/init_boot_"${extract_date}".img || {
+		my_print "Failed to extract init_boot. Exiting..."
+		exit 1
+	}
+	sync
+
+	my_print " "
+
+	my_print "Extracted init_boot_${extract_date}.img into /sdcard/Download folder"
+	my_print "Ready for patching in KernelSU app"
+
+	my_print " "
+}
+
+installer () {
+	active_slot="$(getprop ro.boot.slot_suffix)"
+
+	mkdir -p /tmp/init_boot
+	unzip -o "$3" -d /tmp/init_boot
+
+	img_count="$(ls /tmp/init_boot/*.img 2>/dev/null | wc -l)"
+	if [ "$img_count" -eq 0 ]; then
+		my_print "No .img file found, aborting..."
+		exit 1
+	elif [ "$img_count" -gt 1 ]; then
+		my_print "More than one .img file found, aborting..."
+		exit 1
+	fi
+
+	img_path="$(ls /tmp/init_boot/*.img)"
+	img_name="${img_path##*/}"
+
+	my_print " "
+
+	my_print "Flashing ${img_name} to slot: ${active_slot}..."
+
+	dd if="${img_path}" of=/dev/block/bootdevice/by-name/init_boot"${active_slot}" || {
+		my_print "Failed to flash init_boot. Exiting..."
+		exit 1
+	}
+	sync
+
+	rm -rf /tmp/init_boot
+
+	my_print "Done."
+}
+
+my_print "Extract current init_boot OR Flash init_boot from zip?"
+
+if getVolumeKey "Extract" "Flash"; then
+	extract
+else
+	installer
+fi
+
+exit 0
