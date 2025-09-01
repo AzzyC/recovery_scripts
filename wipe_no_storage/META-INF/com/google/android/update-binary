@@ -7,18 +7,18 @@ my_print() {
 }
 
 getVolumeKey() {
-    my_print " - Volume Up [+] to $1"
-    my_print " - Volume Down [-] to $2"
-    keyInfo=true
-    while "$keyInfo"; do
-        keyInfo="$(getevent -qlc 1 | grep KEY_VOLUME)"
-        if [ "$keyInfo" = "" ]; then
-            continue
-        else
-            isUpKey=$(echo "$keyInfo" | grep KEY_VOLUMEUP)
-            [ "$isUpKey" != "" ] && return 0 || return 1
-        fi
-    done
+	my_print "  Volume Up [+] : $1"
+	my_print "  Volume Down [-] : $2"
+
+    sleep 0.2
+
+	while true; do
+		keyInfo="$(getevent -qlc 1 | grep KEY_VOLUME)"
+		case "$keyInfo" in
+		    *KEY_VOLUMEUP*) return 0 ;;
+		    *KEY_VOLUMEDOWN*) return 1 ;;
+		esac
+	done
 }
 
 wipe_no_storage () {
@@ -37,14 +37,12 @@ wipe_no_storage () {
     ! -name media \
     ! -name recovery \
     -exec rm -rf {} +
-	sync
 
 	my_print "Done."
 
 	my_print "Formatting /metadata using mke2fs..."
 	umount /metadata 2>/dev/null || true
 	mke2fs -t ext4 -O ^has_journal -m 0 /dev/block/bootdevice/by-name/metadata
-	sync
 	mountpoint -q /metadata || mount /metadata
 	my_print "Done."
 
@@ -58,7 +56,7 @@ wipe_no_storage () {
 
 	my_print " "
 
-	my_print "Ready to flash new ROM!"
+	my_print "Data wipe complete! You may now flash your ROM."
 
 }
 
@@ -80,12 +78,10 @@ dirty_flash_wipe () {
 		mkdir -p "$cache"
 		my_print "Done."
 	done
-	sync
 
 	my_print "Formatting /metadata using mke2fs..."
 	umount /metadata 2>/dev/null || true
 	mke2fs -t ext4 -O ^has_journal -m 0 /dev/block/bootdevice/by-name/metadata
-	sync
 	mountpoint -q /metadata || mount /metadata
 	my_print "Done."
 
@@ -108,24 +104,36 @@ dirty_flash_wipe () {
 }
 
 my_print " "
-my_print "Wipe /data without internal storage OR clear caches in /data?"
+my_print "Select wipe mode:"
+my_print " "
 
-if getVolumeKey "wipe_no_storage" "dirty_flash_wipe"; then
+if getVolumeKey "Full Wipe (/data, keep media)" "Dirty-Flash Wipe (Caches only)"; then
 
 	my_print " "
+	my_print ">> Volume Up detected"
+	my_print " "
 
-	my_print "Are you sure you want to wipe /data without internal storage?"
-	if getVolumeKey "Yes (Wipe)" "No (DO NOT Wipe)"; then
+	my_print "Confirm full wipe (excluding /data/media):"
+	if getVolumeKey "Yes (Wipe)" "No (Cancel)"; then
+		my_print " "
+		my_print ">> Volume Up confirmed"
 	 	wipe_no_storage
 	 else
-	 	my_print "No wipe initiated. Exiting..."
-	 	exit 1
+	 	my_print " "
+	 	my_print ">> Volume Down detected"
+	 	my_print " "
+	 	my_print "Wipe cancelled, aborted by user."
+	 	my_print " "
+	 	exit 0
 	 fi
 
 else
+	my_print " "
+	my_print ">> Volume Down detected"
 	dirty_flash_wipe
 fi
 
 my_print " "
+sync
 
 exit 0
