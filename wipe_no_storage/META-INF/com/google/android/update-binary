@@ -74,20 +74,12 @@ dirty_flash_wipe () {
 
 	my_print " "
 
-	my_print "Wiping /data/dalvik-cache..."
-	rm -rf /data/dalvik-cache
-	mkdir -p /data/dalvik-cache
-	my_print "Done."
-
-	my_print "Wiping /data/resource-cache..."
-	rm -rf /data/resource-cache
-	mkdir -p /data/resource-cache
-	my_print "Done."
-
-	my_print "Wiping /data/cache..."
-	rm -rf /data/cache
-	mkdir -p /data/cache
-	my_print "Done."
+	for cache in /data/dalvik-cache /data/resource-cache /data/cache; do
+		my_print "Wiping $cache..."
+		rm -rf "$cache"
+		mkdir -p "$cache"
+		my_print "Done."
+	done
 	sync
 
 	my_print "Formatting /metadata using mke2fs..."
