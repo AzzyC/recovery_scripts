@@ -6,36 +6,120 @@ my_print() {
 	printf '%s\n' "ui_print $1" >> "/proc/self/fd/$ZIPARG2"
 }
 
-mountpoint -q /data || mount /data
-mountpoint -q /metadata || mount /metadata
+getVolumeKey() {
+    my_print " - Volume Up [+] to $1"
+    my_print " - Volume Down [-] to $2"
+    keyInfo=true
+    while "$keyInfo"; do
+        keyInfo="$(getevent -qlc 1 | grep KEY_VOLUME)"
+        if [ "$keyInfo" = "" ]; then
+            continue
+        else
+            isUpKey=$(echo "$keyInfo" | grep KEY_VOLUMEUP)
+            [ "$isUpKey" != "" ] && return 0 || return 1
+        fi
+    done
+}
 
-before_data="$(du -ms /data | cut -f1)"
-before_meta="$(du -s /metadata | cut -f1)"
+wipe_no_storage () {
+
+	mountpoint -q /data || mount /data
+	mountpoint -q /metadata || mount /metadata
+
+	before_data="$(du -ms /data | cut -f1)"
+	before_meta="$(du -s /metadata | cut -f1)"
+
+	my_print " "
+
+	my_print "Wiping /data without /data/media..."
+
+	find /data -mindepth 1 -maxdepth 1 \
+    ! -name media \
+    ! -name recovery \
+    -exec rm -rf {} +
+	sync
+
+	my_print "Done."
+
+	my_print "Formatting /metadata using mke2fs..."
+	umount /metadata 2>/dev/null || true
+	mke2fs -t ext4 -O ^has_journal -m 0 /dev/block/bootdevice/by-name/metadata
+	sync
+	mountpoint -q /metadata || mount /metadata
+	my_print "Done."
+
+	after_data="$(du -ms /data | cut -f1)"
+	after_meta="$(du -s /metadata | cut -f1)"
+
+	my_print " "
+
+	my_print "/data: ${before_data}mb -> ${after_data}mb"
+	my_print "/metadata: ${before_meta}b -> ${after_meta}b"
+
+	my_print " "
+
+	my_print "Ready to flash new ROM!"
+
+}
+
+dirty_flash_wipe () {
+
+	mountpoint -q /data || mount /data
+	mountpoint -q /metadata || mount /metadata
+
+	before_dalvik="$(du -s /data/dalvik-cache | cut -f1)"
+	before_resource="$(du -s /data/resource-cache | cut -f1)"
+	before_cache="$(du -s /data/cache | cut -f1)"
+	before_meta="$(du -s /metadata | cut -f1)"
+
+	my_print " "
+
+	my_print "Wiping /data/dalvik-cache..."
+	rm -rf /data/dalvik-cache/*
+	my_print "Done."
+
+	my_print "Wiping /data/resource-cache..."
+	rm -rf /data/resource-cache/*
+	my_print "Done."
+
+	my_print "Wiping /data/cache..."
+	rm -rf /data/cache/*
+	my_print "Done."
+
+	my_print "Formatting /metadata using mke2fs..."
+	umount /metadata 2>/dev/null || true
+	mke2fs -t ext4 -O ^has_journal -m 0 /dev/block/bootdevice/by-name/metadata
+	mountpoint -q /metadata || mount /metadata
+	my_print "Done."
+
+	after_dalvik="$(du -s /data/dalvik-cache | cut -f1)"
+	after_resource="$(du -s /data/resource-cache | cut -f1)"
+	after_cache="$(du -s /data/cache | cut -f1)"
+	after_meta="$(du -s /metadata | cut -f1)"
+
+	my_print " "
+
+	my_print "dalvik-cache: ${before_dalvik}b -> ${after_dalvik}b"
+	my_print "resource-cache: ${before_resource}b -> ${after_resource}b"
+	my_print "cache: ${before_cache}b -> ${after_cache}b"
+	my_print "/metadata: ${before_meta}b -> ${after_meta}b"
+
+	my_print " "
+
+	my_print "Dirty-flash wipe complete!"
+
+}
+
+my_print " "
+my_print "Wipe /data without internal storage OR clear caches in /data?"
+
+if getVolumeKey "wipe_no_storage" "dirty_flash_wipe"; then
+	wipe_no_storage
+else
+	dirty_flash_wipe
+fi
 
 my_print " "
 
-my_print "Wiping /data without /data/media..."
-find /data -mindepth 1 -maxdepth 1 ! -path /data/media -exec rm -rf {} +
-my_print "Done."
-
-my_print "Formatting /metadata using mke2fs..."
-umount /metadata 2>/dev/null || true
-mke2fs -t ext4 -O ^has_journal -m 0 /dev/block/bootdevice/by-name/metadata
-mountpoint -q /metadata || mount /metadata
-my_print "Done."
-
-after_data="$(du -ms /data | cut -f1)"
-after_meta="$(du -s /metadata | cut -f1)"
-
-my_print " "
-
-my_print "/data: ${before_data}mb -> ${after_data}mb"
-my_print "/metadata: ${before_meta}b -> ${after_meta}b"
-
-my_print " "
-
-my_print "Ready to flash new ROM!"
-
-my_print " "
 
 exit 0
