@@ -10,10 +10,8 @@ getVolumeKey() {
 	my_print "  Volume Up [+] : $1"
 	my_print "  Volume Down [-] : $2"
 
-    sleep 0.2
-
 	while true; do
-		keyInfo="$(getevent -qlc 1 | grep KEY_VOLUME)"
+		keyInfo="$(getevent -qlc 1 | grep 'KEY_VOLUME.*DOWN')"
 		case "$keyInfo" in
 		    *KEY_VOLUMEUP*) return 0 ;;
 		    *KEY_VOLUMEDOWN*) return 1 ;;
@@ -41,7 +39,7 @@ wipe_no_storage () {
 	my_print "Done."
 
 	my_print "Formatting /metadata using mke2fs..."
-	umount /metadata 2>/dev/null || true
+	umount /metadata
 	mke2fs -t ext4 -O ^has_journal -m 0 /dev/block/bootdevice/by-name/metadata
 	mountpoint -q /metadata || mount /metadata
 	my_print "Done."
@@ -56,7 +54,7 @@ wipe_no_storage () {
 
 	my_print " "
 
-	my_print "Data wipe complete! You may now flash your ROM."
+	my_print "Full Data Wipe complete. You can now flash your ROM!"
 
 }
 
@@ -75,19 +73,18 @@ dirty_flash_wipe () {
 	for cache in /data/dalvik-cache /data/resource-cache /data/cache; do
 		my_print "Wiping $cache..."
 		rm -rf "$cache"
-		mkdir -p "$cache"
-		my_print "Done."
 	done
+	my_print "Done."
 
 	my_print "Formatting /metadata using mke2fs..."
-	umount /metadata 2>/dev/null || true
+	umount /metadata
 	mke2fs -t ext4 -O ^has_journal -m 0 /dev/block/bootdevice/by-name/metadata
 	mountpoint -q /metadata || mount /metadata
 	my_print "Done."
 
-	after_dalvik="$(du -s /data/dalvik-cache | cut -f1)"
-	after_resource="$(du -s /data/resource-cache | cut -f1)"
-	after_cache="$(du -s /data/cache | cut -f1)"
+	[ ! -d /data/dalvik-cache ] && after_dalvik='0'
+	[ ! -d /data/resource-cache ] && after_resource='0'
+	[ ! -d /data/cache ] && after_cache='0'
 	after_meta="$(du -s /metadata | cut -f1)"
 
 	my_print " "
@@ -99,7 +96,7 @@ dirty_flash_wipe () {
 
 	my_print " "
 
-	my_print "Dirty-flash wipe complete!"
+	my_print "Dirty-Flash Wipe complete."
 
 }
 
@@ -107,16 +104,17 @@ my_print " "
 my_print "Select wipe mode:"
 my_print " "
 
-if getVolumeKey "Full Wipe (/data, keep media)" "Dirty-Flash Wipe (Caches only)"; then
+if getVolumeKey "Full Wipe (/data, keep media)" "Dirty-Flash Wipe (caches only)"; then
 
 	my_print " "
 	my_print ">> Volume Up detected"
 	my_print " "
 
-	my_print "Confirm full wipe (excluding /data/media):"
+	my_print "Confirm Full Wipe (excluding /data/media):"
+	my_print " "
 	if getVolumeKey "Yes (Wipe)" "No (Cancel)"; then
 		my_print " "
-		my_print ">> Volume Up confirmed"
+		my_print ">> Volume Up detected"
 	 	wipe_no_storage
 	 else
 	 	my_print " "
